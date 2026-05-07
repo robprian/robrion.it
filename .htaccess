@@ -1,10 +1,10 @@
 Options -Indexes
 RewriteEngine On
 
-# Izinkan akses langsung ke file dan folder yang ada (assets, api, dll)
+# Biarkan file & folder nyata diakses langsung (assets, api, dll)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Teruskan semua request lain ke index.php (Front Controller)
-RewriteRule ^ index.php [L]
+# Semua route lain → index.php
+RewriteRule ^ index.php [QSA,L]

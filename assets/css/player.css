@@ -1034,3 +1034,95 @@ body {
 }
 .btn-home:hover { box-shadow: var(--shadow-btn-active); color: var(--accent); }
 
+/* =============================================
+   MOVIES-ONLY LAYOUT (separate /movies page)
+   ============================================= */
+.movies-layout {
+    display: block !important;
+    grid-template-columns: unset !important;
+}
+.movie-section {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: 100%;
+}
+
+/* =============================================
+   MINI PLAYER BAR (on /movies page)
+   ============================================= */
+.mini-player-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 300;
+    background: var(--bg);
+    box-shadow: 0 -4px 24px rgba(163,177,198,0.5);
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
+}
+.mini-player-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+}
+.mini-thumb {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg,#1a0533,#2b4590,#00e5ff);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-btn);
+}
+.mini-info {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+.mini-title {
+    font-weight: 600;
+    font-size: .85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mini-artist {
+    font-size: .72rem;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mini-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.mini-progress {
+    height: 3px;
+    background: var(--bg);
+    box-shadow: var(--shadow-in);
+    position: relative;
+}
+.mini-progress-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(to right, var(--accent2), var(--accent));
+    transition: width .1s linear;
+}
+
+/* Push content up when mini player shows */
+body.has-mini-player .app-container {
+    padding-bottom: 80px;
+}
+body.has-mini-player .mobile-bottom-nav {
+    bottom: 68px;
+}
+
+@media (max-width: 900px) {
+    .mini-player-inner { padding: 8px 14px; gap: 10px; }
+    .mini-thumb { width: 38px; height: 38px; }
+    .app-container { padding-bottom: 150px !important; }
+}

@@ -1,5 +1,5 @@
 // ============================================================
-// music.js – Audio Player Logic (Modular)
+// music.js – Audio Player + localStorage state persistence
 // ============================================================
 const audio        = document.getElementById('audio-player');
 const playIcon     = document.getElementById('play-icon');
@@ -16,18 +16,18 @@ const vizContainer  = document.getElementById('visualizer');
 const waveViz       = document.getElementById('waveform-viz');
 const volFill       = document.getElementById('vol-fill');
 
-let playlistData     = [];
-let currentIndex     = 0;
-let _isPlaying       = false;
-let _shuffleOn       = false;
-let _repeatOn        = false;
-let _muted           = false;
-let _vol             = 0.8;
+let playlistData = [];
+let currentIndex = 0;
+let _playing     = false;
+let _shuffleOn   = false;
+let _repeatOn    = false;
+let _muted       = false;
+let _vol         = 0.8;
 
-window.isPlaying = false;
+window.isPlaying  = false;
 
-/* ---- Init ---- */
-window.initMusic = function () {
+/* ── Init ── */
+window.initMusic = function() {
     if (!audio) return;
     audio.volume = _vol;
 
@@ -38,19 +38,36 @@ window.initMusic = function () {
                 playlistData = res.data;
                 if (playlistCount) playlistCount.innerText = playlistData.length;
                 renderPlaylist();
-                loadSong(0);
+                // Restore state from localStorage
+                const saved = JSON.parse(localStorage.getItem('waveform_state') || 'null');
+                if (saved && saved.index !== undefined && playlistData[saved.index]) {
+                    loadSong(saved.index);
+                    if (saved.currentTime) audio.currentTime = saved.currentTime;
+                    if (saved.volume !== undefined) { _vol = saved.volume; audio.volume = _vol; if(volFill) volFill.style.width = (_vol*100)+'%'; }
+                } else {
+                    loadSong(0);
+                }
             } else {
-                if (playlistEl) playlistEl.innerHTML =
-                    `<p class="loading-state">Belum ada file MP3 di folder: ${res.path_scanned || 'music'}</p>`;
+                if (playlistEl) playlistEl.innerHTML = `<p class="loading-state">Belum ada file MP3 di: ${res.path_scanned || 'music'}</p>`;
             }
         })
         .catch(() => {
-            if (playlistEl) playlistEl.innerHTML =
-                `<p class="loading-state" style="color:red">Gagal memuat playlist.</p>`;
+            if (playlistEl) playlistEl.innerHTML = `<p class="loading-state" style="color:red">Gagal memuat playlist.</p>`;
         });
 };
 
-function renderPlaylist () {
+function saveState() {
+    if (!playlistData.length) return;
+    localStorage.setItem('waveform_state', JSON.stringify({
+        playlist   : playlistData,
+        index      : currentIndex,
+        currentTime: audio ? audio.currentTime : 0,
+        volume     : _vol,
+        playing    : _playing
+    }));
+}
+
+function renderPlaylist() {
     if (!playlistEl) return;
     playlistEl.innerHTML = '';
     playlistData.forEach((song, i) => {
@@ -70,7 +87,7 @@ function renderPlaylist () {
     });
 }
 
-window.loadSong = function (index) {
+window.loadSong = function(index) {
     if (!playlistData.length) return;
     currentIndex = index;
     const song = playlistData[index];
@@ -79,95 +96,93 @@ window.loadSong = function (index) {
     if (audio) audio.src = song.url;
     document.querySelectorAll('.playlist-item').forEach(el => el.classList.remove('active'));
     const act = document.getElementById(`pitem-${index}`);
-    if (act) { act.classList.add('active'); act.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    if (act) { act.classList.add('active'); act.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+    saveState();
 };
 
-window.loadAndPlay = function (index) { loadSong(index); playAudio(); };
+window.loadAndPlay = function(index) { loadSong(index); playAudio(); };
 
-window.togglePlay = function (e) {
+window.togglePlay = function(e) {
     if (e) e.stopPropagation();
     if (!playlistData.length) return;
-    _isPlaying ? pauseAudio() : playAudio();
+    _playing ? pauseAudio() : playAudio();
 };
 
-window.playAudio = function () {
+window.playAudio = function() {
     if (!audio) return;
     audio.play().then(() => {
-        _isPlaying = window.isPlaying = true;
-        if (playIcon) { playIcon.classList.remove('fa-play'); playIcon.classList.add('fa-pause'); }
+        _playing = window.isPlaying = true;
+        if (playIcon) { playIcon.className = 'fa-solid fa-pause'; }
         if (vizContainer) vizContainer.classList.add('is-playing');
         if (waveViz) waveViz.classList.add('is-playing');
+        saveState();
     }).catch(console.error);
 };
 
-window.pauseAudio = function () {
+window.pauseAudio = function() {
     if (!audio) return;
     audio.pause();
-    _isPlaying = window.isPlaying = false;
-    if (playIcon) { playIcon.classList.remove('fa-pause'); playIcon.classList.add('fa-play'); }
+    _playing = window.isPlaying = false;
+    if (playIcon) { playIcon.className = 'fa-solid fa-play'; }
     if (vizContainer) vizContainer.classList.remove('is-playing');
     if (waveViz) waveViz.classList.remove('is-playing');
+    saveState();
 };
 
-window.nextSong = function () {
+window.nextSong = function() {
     if (!playlistData.length) return;
     if (_shuffleOn) {
-        let next;
-        do { next = Math.floor(Math.random() * playlistData.length); } while (next === currentIndex);
-        loadAndPlay(next);
+        let n; do { n = Math.floor(Math.random() * playlistData.length); } while (n === currentIndex);
+        loadAndPlay(n);
     } else {
         loadAndPlay((currentIndex + 1) % playlistData.length);
     }
 };
 
-window.prevSong = function () {
+window.prevSong = function() {
     if (!playlistData.length) return;
     loadAndPlay((currentIndex - 1 + playlistData.length) % playlistData.length);
 };
 
-window.toggleShuffle = function () {
+window.toggleShuffle = function() {
     _shuffleOn = !_shuffleOn;
     document.getElementById('btn-shuffle')?.classList.toggle('active-btn', _shuffleOn);
 };
 
-window.toggleRepeat = function () {
+window.toggleRepeat = function() {
     _repeatOn = !_repeatOn;
     document.getElementById('btn-repeat')?.classList.toggle('active-btn', _repeatOn);
 };
 
-window.seekAudio = function (e) {
+window.seekAudio = function(e) {
     if (!audio || !audio.duration) return;
-    const pct = e.offsetX / progressBar.clientWidth;
-    audio.currentTime = pct * audio.duration;
+    audio.currentTime = (e.offsetX / progressBar.clientWidth) * audio.duration;
 };
 
-window.toggleMute = function () {
+window.toggleMute = function() {
     if (!audio) return;
-    _muted = !_muted;
-    audio.muted = _muted;
-    const icon = document.getElementById('vol-icon');
-    if (icon) icon.className = _muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    _muted = !_muted; audio.muted = _muted;
+    const ic = document.getElementById('vol-icon');
+    if (ic) ic.className = _muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
 };
 
-window.setVolume = function (e) {
+window.setVolume = function(e) {
     if (!audio) return;
-    const pct = Math.max(0, Math.min(1, e.offsetX / document.getElementById('vol-bar').clientWidth));
-    _vol = pct;
-    audio.volume = pct;
-    if (volFill) volFill.style.width = (pct * 100) + '%';
+    _vol = Math.max(0, Math.min(1, e.offsetX / document.getElementById('vol-bar').clientWidth));
+    audio.volume = _vol;
+    if (volFill) volFill.style.width = (_vol * 100) + '%';
+    saveState();
 };
 
-/* ---- Progress update ---- */
 if (audio) {
     audio.addEventListener('timeupdate', () => {
         if (!audio.duration) return;
         const pct = (audio.currentTime / audio.duration) * 100;
-        if (progressFill)  progressFill.style.width  = pct + '%';
+        if (progressFill)  progressFill.style.width = pct + '%';
         if (progressThumb) progressThumb.style.left  = pct + '%';
         if (currentTimeEl) currentTimeEl.innerText = fmt(audio.currentTime);
         if (totalTimeEl)   totalTimeEl.innerText   = fmt(audio.duration);
-
-        // Update playlist item duration once
+        // Update duration in playlist
         const durEl = document.querySelector(`#pitem-${currentIndex} .item-duration`);
         if (durEl && durEl.innerText === '--:--') durEl.innerText = fmt(audio.duration);
     });
@@ -175,9 +190,11 @@ if (audio) {
         if (_repeatOn) { audio.currentTime = 0; playAudio(); }
         else nextSong();
     });
+    // Persist state periodically
+    setInterval(saveState, 5000);
 }
 
-function fmt (s) {
+function fmt(s) {
     if (isNaN(s)) return '0:00';
     const m = Math.floor(s / 60), sec = Math.floor(s % 60);
     return `${m}:${sec < 10 ? '0' : ''}${sec}`;
