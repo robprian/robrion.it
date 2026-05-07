@@ -28,9 +28,11 @@ const PROVIDERS = {
             { key: 'foryou', label: 'For You' },
             { key: 'trending', label: 'Trending' },
         ],
+        // list: response.collections[]
+        // item: { collection_id, title, cover }
+        listPath: ['collections'],
         episodeEndpoint: 'detail',
         episodeParam: 'collection_id',
-        idField: 'collection_id',
         videoEndpoint: 'episode',
         videoParam: 'collection_id',
         epNumParam: 'episodeNumber',
@@ -42,9 +44,14 @@ const PROVIDERS = {
             { key: 'foryou', label: 'For You' },
             { key: 'homepage', label: 'Homepage' },
         ],
+        // list: response.data.lists[]
+        // item: { book_id, book_title, book_pic }
+        listPath: ['data', 'lists'],
         episodeEndpoint: 'episode',
-        episodeParam: 'id',
-        idField: 'id',
+        episodeParam: 'book_id',
+        videoEndpoint: 'episode',
+        videoParam: 'book_id',
+        epNumParam: 'ep',
         videoExtract: 'direct',
     },
     shortmax: {
@@ -55,9 +62,14 @@ const PROVIDERS = {
             { key: 'rekomendasi', label: 'Rekomendasi' },
             { key: 'vip', label: 'VIP' },
         ],
-        episodeEndpoint: 'episode',
-        episodeParam: 'id',
-        idField: 'id',
+        // list: response.results[]
+        // item: { shortPlayId, name, cover }
+        listPath: ['results'],
+        episodeEndpoint: 'detail',
+        episodeParam: 'shortPlayId',
+        videoEndpoint: 'episode',
+        videoParam: 'shortPlayId',
+        epNumParam: 'episode',
         videoExtract: 'direct',
     },
     goodshort: {
@@ -68,9 +80,11 @@ const PROVIDERS = {
             { key: 'trending', label: 'Trending' },
             { key: 'anime', label: 'Anime' },
         ],
+        // list: response.data.records[].items[] (flatten)
+        listPath: ['data', 'records'],  // special: flatten items
+        listFlatten: 'items',
         episodeEndpoint: 'allepisode',
         episodeParam: 'id',
-        idField: 'id',
         videoExtract: 'cdnList',
         decryptEndpoint: 'decrypt',
     },
@@ -80,9 +94,11 @@ const PROVIDERS = {
             { key: 'foryou', label: 'For You' },
             { key: 'theaters', label: 'Theater' },
         ],
+        // list: response.contentInfos[]
+        // item: { shortPlayId, shortPlayName, shortPlayCover }
+        listPath: ['contentInfos'],
         episodeEndpoint: 'allepisode',
-        episodeParam: 'id',
-        idField: 'id',
+        episodeParam: 'shortPlayId',
         videoExtract: 'auto',
     },
     freereels: {
@@ -92,9 +108,11 @@ const PROVIDERS = {
             { key: 'homepage', label: 'Homepage' },
             { key: 'animepage', label: 'Anime' },
         ],
+        // list: response.data.items[]
+        // item: { key, title, cover }
+        listPath: ['data', 'items'],
         episodeEndpoint: 'detailAndAllEpisode',
-        episodeParam: 'id',
-        idField: 'id',
+        episodeParam: 'key',
         videoExtract: 'direct',
     },
     dramanova: {
@@ -103,10 +121,14 @@ const PROVIDERS = {
             { key: 'home', label: 'Home' },
             { key: 'drama18', label: '18+' },
         ],
+        // list: response.rows[]
+        // item: { dramaId, title, posterImg }
+        listPath: ['rows'],
         episodeEndpoint: 'detail',
-        episodeParam: 'id',
-        idField: 'id',
+        episodeParam: 'dramaId',
         videoEndpoint: 'getvideo',
+        videoParam: 'dramaId',
+        epNumParam: 'episode',
         videoExtract: 'direct',
     },
     anime: {
@@ -118,8 +140,9 @@ const PROVIDERS = {
         ],
         episodeEndpoint: 'detail',
         episodeParam: 'id',
-        idField: 'id',
         videoEndpoint: 'getvideo',
+        videoParam: 'id',
+        epNumParam: 'ep',
         videoExtract: 'direct',
     },
 };
@@ -135,27 +158,62 @@ function apiFetch(provider, endpoint, params = {}) {
     return fetch(`${API_BASE}?${qs}`).then(r => r.json());
 }
 
-// ── Normalize drama list – handle varying field names ──
+// ── Normalize drama – maps ALL provider-specific field names ──
 function normalizeDrama(raw) {
     return {
-        id:       raw.bookId || raw.id || raw.dramaId || raw.drama_id || raw.contentId || raw.collection_id || '',
-        title:    raw.bookName || raw.title || raw.name || raw.dramaName || raw.drama_name || 'Untitled',
-        cover:    raw.coverWap || raw.cover || raw.poster || raw.image || raw.coverUrl || raw.img || '',
-        epCount:  raw.chapterCount || raw.episodeCount || raw.episode_count || raw.totalEpisode || '?',
-        tags:     raw.tags || raw.genre || [],
-        intro:    raw.introduction || raw.synopsis || raw.description || raw.desc || '',
-        plays:    raw.playCount || raw.views || raw.view_count || '',
-        corner:   raw.corner || null,
-        rankVo:   raw.rankVo || null,
-        _raw:     raw, // keep original for episode fetching
+        // ID: cover all provider-specific ID field names
+        id:      raw.collection_id || raw.book_id || raw.shortPlayId ||
+                 raw.bookId || raw.dramaId || raw.drama_id || raw.contentId ||
+                 raw.key || raw.id || '',
+        // Title
+        title:   raw.title || raw.bookName || raw.book_title || raw.name ||
+                 raw.shortPlayName || raw.dramaName || raw.drama_name || 'Untitled',
+        // Cover image
+        cover:   raw.cover || raw.coverWap || raw.book_pic || raw.poster ||
+                 raw.posterImg || raw.image || raw.coverUrl || raw.img ||
+                 raw.shortPlayCover || '',
+        // Episode count
+        epCount: raw.episodeCount || raw.chapterCount || raw.episode_count ||
+                 raw.totalEpisode || raw.total_episodes || '?',
+        tags:    raw.tags || raw.genre || raw.categories || [],
+        intro:   raw.introduction || raw.synopsis || raw.description ||
+                 raw.desc || raw.intro || '',
+        plays:   raw.playCount || raw.views || raw.view_count || raw.watchCount || '',
+        corner:  raw.corner || null,
+        rankVo:  raw.rankVo || null,
+        _raw:    raw,
     };
 }
 
-// ── Extract list from API response ──
-function extractList(data) {
+// ── Extract list from API response – provider-aware ──
+function extractList(data, provKey) {
+    const prov = provKey ? PROVIDERS[provKey] : null;
+
+    // 1) Use provider's explicit listPath config
+    if (prov?.listPath) {
+        let node = data;
+        for (const key of prov.listPath) {
+            if (node == null || typeof node !== 'object') { node = null; break; }
+            node = node[key];
+        }
+        if (Array.isArray(node)) {
+            // Special: GoodShort records[] each have an items[] that need flattening
+            if (prov.listFlatten) {
+                const flat = [];
+                node.forEach(section => {
+                    const items = section[prov.listFlatten];
+                    if (Array.isArray(items)) flat.push(...items);
+                });
+                return flat;
+            }
+            return node;
+        }
+    }
+
+    // 2) Generic fallback
     if (Array.isArray(data)) return data;
-    // Try common wrapper keys
-    for (const k of ['data', 'result', 'list', 'items', 'dramas', 'videos', 'contents']) {
+    for (const k of ['data', 'result', 'list', 'items', 'dramas', 'videos', 'contents',
+                      'collections', 'results', 'rows', 'contentInfos', 'chapterList']) {
         if (data[k] && Array.isArray(data[k])) return data[k];
     }
     // Try first array property
@@ -207,7 +265,7 @@ window.loadCategory = function(cat, tabEl) {
 
     apiFetch(_currentProvider, cat)
         .then(data => {
-            const list = extractList(data).map(normalizeDrama);
+            const list = extractList(data, _currentProvider).map(normalizeDrama);
             _cache[cacheKey] = list;
             renderGrid(list, container);
         })
@@ -292,10 +350,19 @@ window.openDetail = function(drama) {
 
     apiFetch(_currentProvider, epEndpoint, { [paramName]: dramaId })
         .then(data => {
-            let episodes = extractList(data);
-            // FreeReels returns detail+episodes in one
-            if (!episodes.length && data.episodes) episodes = data.episodes;
-            if (!episodes.length && data.chapterList) episodes = data.chapterList;
+            // Try provider-specific episode list paths first
+            let episodes = [];
+
+            // FreeReels: detailAndAllEpisode → data.episodes or data.chapterList
+            if (data.episodes && Array.isArray(data.episodes)) episodes = data.episodes;
+            else if (data.chapterList && Array.isArray(data.chapterList)) episodes = data.chapterList;
+            // NetShort: allepisode → data.records[]
+            else if (data.data?.records && Array.isArray(data.data.records)) episodes = data.data.records;
+            // DramaNova: detail → data.videoList or data.episodes
+            else if (data.data?.videoList && Array.isArray(data.data.videoList)) episodes = data.data.videoList;
+            // Generic fallback
+            else episodes = extractList(data);
+
             _allEpisodes = episodes;
             renderEpisodes(episodes);
         })
@@ -313,8 +380,10 @@ function renderEpisodes(episodes) {
     }
     grid.innerHTML = '';
     episodes.forEach((ep, i) => {
-        const label  = ep.chapterName || ep.title || ep.name || ep.episodeName || `Ep ${ep.chapterIndex !== undefined ? ep.chapterIndex+1 : (ep.episode || i+1)}`;
-        const isPaid = ep.isCharge === 1 || ep.chargeChapter === true || ep.vip === true;
+        const label  = ep.chapterName || ep.title || ep.name || ep.episodeName ||
+                       ep.shortPlayName || ep.video_title ||
+                       `Ep ${ep.chapterIndex !== undefined ? ep.chapterIndex+1 : (ep.episode || ep.episodeNumber || i+1)}`;
+        const isPaid = ep.isCharge === 1 || ep.chargeChapter === true || ep.vip === true || ep.isLock === true;
         const btn = document.createElement('button');
         btn.className = 'ep-btn' + (isPaid ? ' ep-paid' : '');
         btn.innerHTML = isPaid ? `<i class="fa-solid fa-lock" style="font-size:.6rem;margin-right:4px"></i>${label}` : label;
@@ -570,7 +639,7 @@ window.searchDrama = function() {
 
     apiFetch(_currentProvider, 'search', { q, query: q, keyword: q, s: q })
         .then(data => {
-            const list = extractList(data).map(normalizeDrama);
+            const list = extractList(data, _currentProvider).map(normalizeDrama);
             renderGrid(list, container);
         })
         .catch(() => {
