@@ -70,24 +70,45 @@
         }
 
         .avatar-ring {
-            width: 110px;
-            height: 110px;
+            width: 126px;
+            height: 126px;
             border-radius: 50%;
             box-shadow: var(--so);
-            padding: 8px;
+            padding: 5px;
             background: var(--bg);
-            flex-shrink: 0
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .avatar-ring::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00e5ff, #7c3aed, #ec4899);
+            z-index: 0;
+            border-radius: 50%;
+            padding: 3px;
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff 0);
+            mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff 0);
         }
 
         .avatar-inner {
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            background: linear-gradient(135deg, #1a0533, #2b4590, #00e5ff);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.6rem
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        .avatar-inner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            border-radius: 50%;
+            display: block;
         }
 
         h1 {
@@ -400,7 +421,10 @@
         <div class="greeting-chip"><?= $sapa ?> – Welcome to my Portfolio 👋</div>
 
         <div class="avatar-ring">
-            <div class="avatar-inner">🎧</div>
+            <div class="avatar-inner">
+                <img src="/assets/img/foto.jpg" alt="Robby Aprianto"
+                     onerror="this.style.display='none';this.parentNode.innerHTML+='<span style=&quot;font-size:2.6rem&quot;>🎧</span>'">
+            </div>
         </div>
 
         <div>
