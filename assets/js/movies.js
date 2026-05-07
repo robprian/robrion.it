@@ -28,9 +28,12 @@ const PROVIDERS = {
             { key: 'foryou', label: 'For You' },
             { key: 'trending', label: 'Trending' },
         ],
-        episodeEndpoint: 'episode',
-        episodeParam: 'id',
-        idField: 'id',
+        episodeEndpoint: 'detail',
+        episodeParam: 'collection_id',
+        idField: 'collection_id',
+        videoEndpoint: 'episode',
+        videoParam: 'collection_id',
+        epNumParam: 'episodeNumber',
         videoExtract: 'direct',
     },
     reelshort: {
@@ -135,7 +138,7 @@ function apiFetch(provider, endpoint, params = {}) {
 // ── Normalize drama list – handle varying field names ──
 function normalizeDrama(raw) {
     return {
-        id:       raw.bookId || raw.id || raw.dramaId || raw.drama_id || raw.contentId || '',
+        id:       raw.bookId || raw.id || raw.dramaId || raw.drama_id || raw.contentId || raw.collection_id || '',
         title:    raw.bookName || raw.title || raw.name || raw.dramaName || raw.drama_name || 'Untitled',
         cover:    raw.coverWap || raw.cover || raw.poster || raw.image || raw.coverUrl || raw.img || '',
         epCount:  raw.chapterCount || raw.episodeCount || raw.episode_count || raw.totalEpisode || '?',
@@ -406,11 +409,14 @@ window.playEpisode = function(ep, epLabel, epIndex) {
         return;
     }
 
-    // ── STRATEGY B: Providers with separate video endpoint (DramaNova, Anime) ──
+    // ── STRATEGY B: Providers with separate video endpoint (DramaNova, Anime, PineDrama) ──
     if (prov.videoEndpoint) {
         wrap.innerHTML = loadingHTML(epLabel);
-        const vidId = ep.id || ep.episodeId || ep.chapterId || _currentDrama.id;
-        apiFetch(_currentProvider, prov.videoEndpoint, { id: vidId, ep: epIndex + 1 })
+        const vidId = ep.id || ep.episodeId || ep.chapterId || _currentDrama.id || _currentDrama.collection_id;
+        const vParam = prov.videoParam || 'id';
+        const eParam = prov.epNumParam || 'ep';
+        
+        apiFetch(_currentProvider, prov.videoEndpoint, { [vParam]: vidId, [eParam]: epIndex + 1 })
             .then(data => {
                 const url = extractDirectUrl(data);
                 if (url) showPlayer(url, subTrack, wrap, epLabel);
