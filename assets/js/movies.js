@@ -233,7 +233,7 @@ window.switchProvider = function(provKey) {
     _cache = {};
 
     // Update provider tabs
-    document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.prov-btn').forEach(b => b.classList.remove('active'));
     document.querySelector(`[data-provider="${provKey}"]`)?.classList.add('active');
 
     // Render category tabs

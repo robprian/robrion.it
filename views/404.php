@@ -3,70 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 – Halaman Tidak Ditemukan | robrion.my.id</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>404 – Page Not Found | robrion.my.id</title>
+    <link rel="stylesheet" href="/assets/css/theme.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/assets/js/theme.js"></script>
     <style>
-        :root {
-            --bg: #e0e5ec;
-            --text: #2d3748;
-            --text-light: #718096;
-            --accent: #00e5ff;
-            --accent2: #7c3aed;
-            --shadow-out: 9px 9px 18px rgba(163,177,198,0.7),-9px -9px 18px rgba(255,255,255,0.85);
-            --shadow-btn: 5px 5px 10px rgba(163,177,198,0.65),-5px -5px 10px rgba(255,255,255,0.8);
-            --shadow-btn-active: inset 3px 3px 7px rgba(163,177,198,0.7),inset -3px -3px 7px rgba(255,255,255,0.8);
-        }
-        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-        body {
-            font-family:'Poppins',sans-serif;
-            background:var(--bg); color:var(--text);
-            min-height:100vh;
-            display:flex;align-items:center;justify-content:center;
-            padding:20px;
-        }
-        .card {
-            background:var(--bg);
-            border-radius:30px;
-            box-shadow:var(--shadow-out);
-            padding:60px 50px;
-            text-align:center;
-            max-width:480px;
-            width:100%;
-            display:flex;flex-direction:column;align-items:center;gap:20px;
-        }
-        .err-icon {
-            width:90px;height:90px;border-radius:50%;
-            background:var(--bg);
-            box-shadow:var(--shadow-btn);
-            display:flex;align-items:center;justify-content:center;
-            font-size:2.2rem;color:var(--accent);
-        }
-        .err-code {
-            font-size:4.5rem;font-weight:700;line-height:1;
-            background:linear-gradient(135deg,var(--accent),var(--accent2));
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-        }
-        h2{font-size:1.3rem;font-weight:600}
-        p{color:var(--text-light);font-size:0.9rem;line-height:1.6}
-        .btn-home {
-            display:inline-flex;align-items:center;gap:8px;
-            background:var(--bg);box-shadow:var(--shadow-btn);
-            border:none;border-radius:20px;
-            padding:12px 28px;font-family:inherit;font-size:0.9rem;
-            font-weight:600;color:var(--text);cursor:pointer;
-            text-decoration:none;transition:all 0.25s;margin-top:6px;
-        }
-        .btn-home:hover{box-shadow:var(--shadow-btn-active);color:var(--accent);}
+    .error-page {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; min-height: 70vh; text-align: center; gap: 20px;
+    }
+    .error-code {
+        font-size: 6rem; font-weight: 800; line-height: 1;
+        background: var(--gradient-brand);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .error-title { font-size: 1.3rem; font-weight: 700; }
+    .error-desc { font-size: .88rem; color: var(--text-sec); max-width: 400px; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="err-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-        <div class="err-code">404</div>
-        <h2>Halaman Tidak Ditemukan</h2>
-        <p>URL yang Anda akses tidak tersedia atau sudah dipindahkan.<br>Coba kembali ke halaman utama.</p>
-        <a href="/" class="btn-home"><i class="fa-solid fa-house"></i> Kembali ke Beranda</a>
+<header class="top-bar">
+    <div class="top-bar-left">
+        <a href="/" class="top-bar-logo">ROBRION</a>
+        <nav class="top-bar-nav">
+            <a href="/"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/music"><i class="fa-solid fa-headphones-simple"></i> Music</a>
+            <a href="/movies"><i class="fa-solid fa-clapperboard"></i> Cinema</a>
+        </nav>
     </div>
+    <div class="top-bar-right">
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <i class="fa-solid fa-moon"></i><i class="fa-solid fa-sun"></i>
+        </button>
+    </div>
+</header>
+<div class="app-shell">
+    <div class="neu-card error-page animate-in">
+        <div class="error-code">404</div>
+        <h1 class="error-title">Halaman Tidak Ditemukan</h1>
+        <p class="error-desc">Maaf, halaman yang kamu cari tidak ada atau sudah dipindahkan.</p>
+        <a href="/" class="neu-btn-accent neu-btn" style="margin-top:10px">
+            <i class="fa-solid fa-house"></i> Kembali ke Home
+        </a>
+    </div>
+</div>
+<nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+        <a href="/" class="nav-item"><i class="fa-solid fa-house"></i><span>Home</span></a>
+        <a href="/music" class="nav-item"><i class="fa-solid fa-headphones-simple"></i><span>Music</span></a>
+        <a href="/movies" class="nav-item"><i class="fa-solid fa-clapperboard"></i><span>Cinema</span></a>
+        <button class="nav-item" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>Theme</span></button>
+    </div>
+</nav>
 </body>
 </html>
