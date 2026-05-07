@@ -371,7 +371,7 @@
     </nav>
 </div>
 
-<audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
+<audio id="audio-player" preload="none"></audio>
 <script src="/assets/js/music.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

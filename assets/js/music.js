@@ -1,7 +1,7 @@
 // ============================================================
 // music.js – Suno AI Music Player
 // Features: API fetch + localStorage cache, album art,
-//           synced lyrics, Web Audio API equalizer, persistence
+//           synced lyrics, Canvas equalizer, persistence
 // ============================================================
 
 const SUNO_API   = 'https://inisunoapi.vercel.app/api/get';
@@ -37,11 +37,6 @@ let _vol         = 0.8;
 let _lyricLines  = [];
 let _lyricTimer  = null;
 let _lyricIdx    = 0;
-
-// Web Audio API
-let _audioCtx    = null;
-let _analyser    = null;
-let _source      = null;
 let _rafId       = null;
 
 window.isPlaying = false;
@@ -53,7 +48,8 @@ window.isPlaying = false;
 window.initMusic = function() {
     if (!audio) return;
     audio.volume = _vol;
-    audio.crossOrigin = 'anonymous';
+    // Do NOT set crossOrigin — Suno CDN doesn't support CORS headers,
+    // setting it would PREVENT audio from playing entirely.
     bindAudioEvents();
     loadPlaylistFromCacheOrAPI();
 };
@@ -61,9 +57,9 @@ window.initMusic = function() {
 async function loadPlaylistFromCacheOrAPI() {
     showPlaylistLoading('Memuat playlist dari Suno AI...');
 
-    // 1) Try cache
+    // 1) Try cache first for instant display
     const cached = getCache();
-    if (cached) {
+    if (cached && cached.length > 0) {
         playlistData = cached;
         onPlaylistLoaded();
         // Refresh in background silently
@@ -73,16 +69,17 @@ async function loadPlaylistFromCacheOrAPI() {
         return;
     }
 
-    // 2) Fetch fresh
+    // 2) Fetch fresh from API
     try {
         const songs = await fetchAllPages();
         if (songs.length > 0) {
             mergeAndSave(songs);
             onPlaylistLoaded();
         } else {
-            showPlaylistLoading('Tidak ada lagu ditemukan.', true);
+            showPlaylistLoading('Tidak ada lagu ditemukan di API.', true);
         }
     } catch(e) {
+        console.error('Fetch playlist error:', e);
         showPlaylistLoading('Gagal memuat dari API. Coba refresh.', true);
     }
 }
@@ -92,15 +89,16 @@ async function fetchAllPages() {
     let page = 1;
     let hasMore = true;
 
-    showPlaylistLoading(`Mengambil halaman 1...`);
-
-    while (hasMore && page <= 10) { // max 10 pages safety
+    while (hasMore && page <= 10) {
+        showPlaylistLoading(`Mengambil halaman ${page}...`);
         try {
             const res = await fetch(`${SUNO_API}?page=${page}`);
+            if (!res.ok) { hasMore = false; break; }
             const data = await res.json();
-            const items = Array.isArray(data) ? data : (data.data || data.items || data.songs || []);
 
-            if (!items.length) { hasMore = false; break; }
+            // API returns array directly OR wrapped in object
+            const items = Array.isArray(data) ? data : (data.data || data.items || data.songs || []);
+            if (!Array.isArray(items) || !items.length) { hasMore = false; break; }
 
             items.forEach(item => {
                 if (item.audio_url && item.status === 'complete') {
@@ -108,9 +106,11 @@ async function fetchAllPages() {
                 }
             });
 
+            // If fewer than 20 results, no more pages
             if (items.length < 20) { hasMore = false; }
-            else { page++; showPlaylistLoading(`Mengambil halaman ${page}...`); }
+            else { page++; }
         } catch(e) {
+            console.warn('Error fetching page', page, e);
             hasMore = false;
         }
     }
@@ -122,7 +122,7 @@ function normalizeSong(item) {
     return {
         id:       item.id,
         title:    item.title || 'Untitled',
-        artist:   item.tags || item.model_name || 'Suno AI',
+        artist:   'Suno AI',
         url:      item.audio_url,
         cover:    item.image_url || '',
         lyric:    item.lyric || '',
@@ -134,11 +134,13 @@ function normalizeSong(item) {
 }
 
 function mergeAndSave(fresh) {
-    // Merge: keep all unique by ID, fresh data wins
+    // Merge: keep unique by ID, fresh data wins
     const map = {};
     playlistData.forEach(s => { map[s.id] = s; });
     fresh.forEach(s => { map[s.id] = s; });
     playlistData = Object.values(map);
+    // Sort by created date descending (newest first)
+    playlistData.sort((a, b) => new Date(b.created || 0) - new Date(a.created || 0));
     setCache(playlistData);
     renderPlaylist();
     if (playlistCount) playlistCount.innerText = playlistData.length;
@@ -149,9 +151,14 @@ function getCache() {
     try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return null;
-        const { ts, data } = JSON.parse(raw);
-        if (Date.now() - ts > CACHE_TTL) return null;
-        return data;
+        const parsed = JSON.parse(raw);
+        // Support both { ts, data } format and direct array
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && parsed.data) {
+            if (Date.now() - (parsed.ts || 0) > CACHE_TTL) return null;
+            return parsed.data;
+        }
+        return null;
     } catch { return null; }
 }
 
@@ -159,9 +166,9 @@ function setCache(data) {
     try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
     } catch(e) {
-        // Storage full – trim to 100 songs
+        // Storage full – trim
         try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data.slice(0, 100) }));
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data.slice(0, 80) }));
         } catch {}
     }
 }
@@ -201,7 +208,7 @@ function onPlaylistLoaded() {
 
 function showPlaylistLoading(msg, isError = false) {
     if (!playlistEl) return;
-    playlistEl.innerHTML = `<div class="loading-state" style="color:${isError?'#f87171':''}">
+    playlistEl.innerHTML = `<div class="loading-state" style="${isError?'color:#f87171':''}">
         ${isError ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-circle-notch fa-spin"></i>'}
         <span>${msg}</span>
     </div>`;
@@ -210,11 +217,19 @@ function showPlaylistLoading(msg, isError = false) {
 function renderPlaylist(filter = '') {
     if (!playlistEl) return;
     playlistEl.innerHTML = '';
-    const filtered = filter
-        ? playlistData.filter(s => s.title.toLowerCase().includes(filter) || s.tags.toLowerCase().includes(filter))
+    const q = filter.toLowerCase();
+    const filtered = q
+        ? playlistData.filter(s =>
+            s.title.toLowerCase().includes(q) ||
+            (s.tags||'').toLowerCase().includes(q))
         : playlistData;
 
-    filtered.forEach((song, i) => {
+    if (!filtered.length) {
+        playlistEl.innerHTML = '<div class="loading-state"><i class="fa-solid fa-search"></i> <span>Tidak ada hasil.</span></div>';
+        return;
+    }
+
+    filtered.forEach((song, _i) => {
         const realIdx = playlistData.indexOf(song);
         const el = document.createElement('div');
         el.className = 'playlist-item' + (realIdx === currentIndex ? ' active' : '');
@@ -223,12 +238,12 @@ function renderPlaylist(filter = '') {
         const dur = song.duration ? fmt(song.duration) : '--:--';
         el.innerHTML = `
             <div class="item-index">${realIdx + 1}</div>
-            <div class="item-thumb" style="${song.cover ? `background-image:url('${song.cover}')` : ''}">
-                ${!song.cover ? '<i class="fa-solid fa-music"></i>' : ''}
+            <div class="item-thumb" ${song.cover ? `style="background-image:url('${song.cover}')"` : ''}>
+                ${!song.cover ? '<i class="fa-solid fa-music" style="color:var(--text-light);font-size:.7rem"></i>' : ''}
             </div>
             <div class="item-info">
                 <div class="item-title">${song.title}</div>
-                <div class="item-artist">${song.tags || song.artist || 'Suno AI'}</div>
+                <div class="item-artist">${song.tags || 'Suno AI'}</div>
             </div>
             <div class="item-duration">${dur}</div>`;
         playlistEl.appendChild(el);
@@ -247,14 +262,22 @@ window.loadSong = function(index) {
     if (playerTitle)  playerTitle.innerText  = song.title;
     if (playerArtist) playerArtist.innerText = song.model || 'Suno AI';
     if (playerTags) {
-        playerTags.innerHTML = (song.tags || '').split(' ').filter(Boolean)
+        playerTags.innerHTML = (song.tags || '').split(/[\s,]+/).filter(Boolean)
             .map(t => `<span class="music-tag">${t}</span>`).join('');
     }
 
     // Album art
     if (albumArtEl) {
-        albumArtEl.src = song.cover || '';
-        albumArtEl.style.display = song.cover ? 'block' : 'none';
+        if (song.cover) {
+            albumArtEl.src = song.cover;
+            albumArtEl.style.display = 'block';
+            const ph = document.getElementById('album-placeholder');
+            if (ph) ph.style.display = 'none';
+        } else {
+            albumArtEl.style.display = 'none';
+            const ph = document.getElementById('album-placeholder');
+            if (ph) ph.style.display = 'flex';
+        }
     }
     // Blurred background
     if (albumArtBg && song.cover) {
@@ -285,14 +308,19 @@ window.togglePlay = function(e) {
 
 window.playAudio = function() {
     if (!audio) return;
-    initAudioContext();
     audio.play().then(() => {
         _playing = window.isPlaying = true;
         if (playIcon) playIcon.className = 'fa-solid fa-pause';
         startEQ();
         startLyricSync();
         saveState();
-    }).catch(console.error);
+    }).catch(err => {
+        console.warn('Play failed:', err);
+        // Still start fake EQ for visual feedback
+        _playing = window.isPlaying = true;
+        if (playIcon) playIcon.className = 'fa-solid fa-pause';
+        startEQ();
+    });
 };
 
 window.pauseAudio = function() {
@@ -308,7 +336,7 @@ window.pauseAudio = function() {
 window.nextSong = function() {
     if (!playlistData.length) return;
     if (_shuffleOn) {
-        let n; do { n = Math.floor(Math.random() * playlistData.length); } while (n === currentIndex);
+        let n; do { n = Math.floor(Math.random() * playlistData.length); } while (n === currentIndex && playlistData.length > 1);
         loadAndPlay(n);
     } else {
         loadAndPlay((currentIndex + 1) % playlistData.length);
@@ -348,6 +376,7 @@ window.toggleMute = function() {
 window.setVolume = function(e) {
     if (!audio) return;
     const bar = document.getElementById('vol-bar');
+    if (!bar) return;
     _vol = Math.max(0, Math.min(1, e.offsetX / bar.clientWidth));
     audio.volume = _vol;
     if (volFill) volFill.style.width = (_vol * 100) + '%';
@@ -363,7 +392,7 @@ window.refreshPlaylist = function() {
 
 // Search
 window.filterPlaylist = function(q) {
-    renderPlaylist(q.toLowerCase());
+    renderPlaylist(q);
 };
 
 // ══════════════════════════════════════════════════
@@ -375,7 +404,6 @@ function parseLyrics(raw) {
     _lyricIdx   = 0;
     if (!raw) return;
 
-    // Estimate timing: total duration / number of lines
     const lines = raw.split('\n')
         .map(l => l.trim())
         .filter(l => l.length > 0);
@@ -422,9 +450,9 @@ function stopLyricSync() {
 
 function highlightLyric(idx) {
     if (!lyricsEl) return;
-    lyricsEl.querySelectorAll('.lyric-line').forEach(el => el.classList.remove('lyric-active', 'lyric-past'));
     const lines = lyricsEl.querySelectorAll('.lyric-line');
     lines.forEach((el, i) => {
+        el.classList.remove('lyric-active', 'lyric-past');
         if (i < idx) el.classList.add('lyric-past');
         if (i === idx) {
             el.classList.add('lyric-active');
@@ -434,99 +462,89 @@ function highlightLyric(idx) {
 }
 
 // ══════════════════════════════════════════════════
-//  WEB AUDIO API EQUALIZER VISUALIZER
+//  CANVAS EQUALIZER (always animated, no Web Audio required)
 // ══════════════════════════════════════════════════
-
-function initAudioContext() {
-    if (_audioCtx) return;
-    try {
-        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        _analyser = _audioCtx.createAnalyser();
-        _analyser.fftSize = 256;
-        _analyser.smoothingTimeConstant = 0.8;
-        _source = _audioCtx.createMediaElementSource(audio);
-        _source.connect(_analyser);
-        _analyser.connect(_audioCtx.destination);
-    } catch(e) { _audioCtx = null; }
-}
+// Note: Web Audio API's createMediaElementSource() requires CORS
+// headers from the audio server. Suno's CDN does not provide them,
+// so we use a visually-driven animated equalizer instead.
 
 function startEQ() {
     stopEQ();
-    if (!eqCanvas || !_analyser) { startFakeEQ(); return; }
-    const ctx = eqCanvas.getContext('2d');
-    const bufLen = _analyser.frequencyBinCount;
-    const dataArr = new Uint8Array(bufLen);
-
-    function draw() {
-        _rafId = requestAnimationFrame(draw);
-        _analyser.getByteFrequencyData(dataArr);
-
-        const W = eqCanvas.width = eqCanvas.offsetWidth * window.devicePixelRatio;
-        const H = eqCanvas.height = eqCanvas.offsetHeight * window.devicePixelRatio;
-        ctx.clearRect(0, 0, W, H);
-
-        const bars = 64;
-        const barW = (W / bars) - 2;
-        const step = Math.floor(bufLen / bars);
-
-        for (let i = 0; i < bars; i++) {
-            let sum = 0;
-            for (let j = 0; j < step; j++) sum += dataArr[i * step + j];
-            const avg = sum / step;
-            const barH = (avg / 255) * H * 0.9;
-            const x = i * (barW + 2);
-
-            // Gradient: teal → purple
-            const hue = 180 + (i / bars) * 100;
-            const alpha = 0.6 + (avg / 255) * 0.4;
-            ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
-
-            // Rounded bar
-            ctx.beginPath();
-            ctx.roundRect(x, H - barH, barW, barH, 4);
-            ctx.fill();
-
-            // Peak dot
-            if (barH > 4) {
-                ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.9)`;
-                ctx.beginPath();
-                ctx.arc(x + barW / 2, H - barH - 2, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-    }
-    draw();
-}
-
-// Fake animated EQ when no AudioContext
-function startFakeEQ() {
     if (!eqCanvas) return;
+
     const ctx = eqCanvas.getContext('2d');
     let frame = 0;
+    // Persistent bar heights for smoothing
+    const barCount = 52;
+    const heights = new Array(barCount).fill(0);
+    const targets = new Array(barCount).fill(0);
+    const peaks   = new Array(barCount).fill(0);
 
     function draw() {
-        if (!_playing) return;
         _rafId = requestAnimationFrame(draw);
         frame++;
-        const W = eqCanvas.width = eqCanvas.offsetWidth * window.devicePixelRatio;
-        const H = eqCanvas.height = eqCanvas.offsetHeight * window.devicePixelRatio;
-        ctx.clearRect(0, 0, W, H);
-        const bars = 48;
-        const barW = (W / bars) - 2;
 
-        for (let i = 0; i < bars; i++) {
-            const noise = Math.sin(frame * 0.05 + i * 0.6) * 0.35 +
-                          Math.sin(frame * 0.09 + i * 0.4) * 0.25 +
-                          Math.random() * 0.15;
-            const barH = Math.max(4, (0.3 + noise) * H * 0.85);
-            const x = i * (barW + 2);
-            const hue = 180 + (i / bars) * 100;
-            ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.75)`;
+        const W = eqCanvas.width  = eqCanvas.offsetWidth  * (window.devicePixelRatio || 1);
+        const H = eqCanvas.height = eqCanvas.offsetHeight * (window.devicePixelRatio || 1);
+        ctx.clearRect(0, 0, W, H);
+
+        const gap = 2;
+        const barW = (W / barCount) - gap;
+
+        // Generate smooth, musical-looking targets every few frames
+        if (frame % 3 === 0) {
+            for (let i = 0; i < barCount; i++) {
+                // Bass heavy on left, treble on right
+                const bassBoost  = Math.max(0, 1 - i / barCount) * 0.3;
+                const wave1 = Math.sin(frame * 0.04 + i * 0.5)  * 0.3;
+                const wave2 = Math.sin(frame * 0.07 + i * 0.3)  * 0.2;
+                const wave3 = Math.sin(frame * 0.11 + i * 0.7)  * 0.15;
+                const pulse = Math.sin(frame * 0.02) * 0.1; // global pulse
+                const rnd   = (Math.random() - 0.5) * 0.15;
+                targets[i] = Math.max(0.04, 0.35 + bassBoost + wave1 + wave2 + wave3 + pulse + rnd);
+            }
+        }
+
+        for (let i = 0; i < barCount; i++) {
+            // Smooth interpolation (spring-like)
+            heights[i] += (targets[i] - heights[i]) * 0.18;
+            const barH = Math.max(3, heights[i] * H * 0.92);
+            const x = i * (barW + gap);
+
+            // Gradient hue: teal(180) → cyan → blue → purple(280)
+            const hue   = 180 + (i / barCount) * 100;
+            const lum   = 50 + heights[i] * 20;
+            const alpha = 0.55 + heights[i] * 0.45;
+
+            // Bar fill
+            const grad = ctx.createLinearGradient(x, H, x, H - barH);
+            grad.addColorStop(0, `hsla(${hue}, 85%, ${lum}%, ${alpha})`);
+            grad.addColorStop(1, `hsla(${hue + 30}, 90%, ${lum + 15}%, ${alpha * 0.7})`);
+            ctx.fillStyle = grad;
+
             ctx.beginPath();
-            ctx.roundRect(x, H - barH, barW, barH, 3);
+            if (ctx.roundRect) {
+                ctx.roundRect(x, H - barH, barW, barH, 3);
+            } else {
+                ctx.rect(x, H - barH, barW, barH);
+            }
             ctx.fill();
+
+            // Peak indicator (falling dot)
+            if (barH > peaks[i]) peaks[i] = barH;
+            else peaks[i] = Math.max(barH, peaks[i] - 1.2);
+
+            ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.85)`;
+            ctx.beginPath();
+            ctx.arc(x + barW / 2, H - peaks[i] - 4, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glow reflection at bottom
+            ctx.fillStyle = `hsla(${hue}, 85%, ${lum}%, 0.12)`;
+            ctx.fillRect(x, H, barW, 4);
         }
     }
+
     draw();
 }
 
@@ -534,7 +552,7 @@ function stopEQ() {
     if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
     if (eqCanvas) {
         const ctx = eqCanvas.getContext('2d');
-        ctx.clearRect(0, 0, eqCanvas.width, eqCanvas.height);
+        if (ctx) ctx.clearRect(0, 0, eqCanvas.width, eqCanvas.height);
     }
 }
 
@@ -545,24 +563,20 @@ function stopEQ() {
 function saveState() {
     if (!playlistData.length) return;
     const song = playlistData[currentIndex];
-    localStorage.setItem(STATE_KEY, JSON.stringify({
-        songId:      song?.id,
-        index:       currentIndex,
-        currentTime: audio ? audio.currentTime : 0,
-        volume:      _vol,
-        playing:     _playing,
-        playlist:    playlistData.slice(0, 50).map(s => ({
-            title:  s.title,
-            artist: s.artist || s.tags,
-            url:    s.url,
-            cover:  s.cover,
-            id:     s.id,
-        })),
-    }));
+    try {
+        localStorage.setItem(STATE_KEY, JSON.stringify({
+            songId:      song?.id,
+            index:       currentIndex,
+            currentTime: audio ? audio.currentTime : 0,
+            volume:      _vol,
+            playing:     _playing,
+        }));
+    } catch {}
 }
 
 function bindAudioEvents() {
     if (!audio) return;
+
     audio.addEventListener('timeupdate', () => {
         if (!audio.duration) return;
         const pct = (audio.currentTime / audio.duration) * 100;
@@ -577,9 +591,12 @@ function bindAudioEvents() {
         else nextSong();
     });
 
-    audio.addEventListener('error', () => {
-        console.warn('Audio error, skipping to next.');
-        setTimeout(nextSong, 1500);
+    audio.addEventListener('error', (e) => {
+        console.warn('Audio error:', e);
+        // Skip to next song after a delay
+        setTimeout(() => {
+            if (playlistData.length > 1) nextSong();
+        }, 2000);
     });
 
     // Save state periodically
