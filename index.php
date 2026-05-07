@@ -103,7 +103,7 @@ $tahun_sekarang = date('Y');
 
         <div class="links">
             <a href="https://n8n.robrion.my.id" class="btn">Workflow Automations (n8n)</a>
-            <a href="music.php" class="btn">Music Portfolio</a>
+            <a href="music" class="btn">Music & Movies</a>
             <a href="#" class="btn">DevOps Projects</a>
         </div>
 

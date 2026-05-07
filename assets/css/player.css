@@ -394,6 +394,157 @@ body {
     display: none;
 }
 
+/* ==== SPA View Styles ==== */
+.movie-section {
+    width: 100%;
+    grid-column: 1 / -1;
+    padding-bottom: 20px;
+}
+
+.movie-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding-bottom: 120px;
+}
+
+.movie-card {
+    background: var(--bg-color);
+    border-radius: 20px;
+    box-shadow: var(--neu-flat);
+    padding: 15px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.movie-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--neu-pressed);
+}
+
+.movie-card .thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: linear-gradient(135deg, #1f1c2c, #928dab);
+    border-radius: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 2rem;
+}
+
+.movie-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-main);
+}
+
+.video-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.video-content {
+    width: 90%;
+    max-width: 1000px;
+    position: relative;
+}
+
+.video-content video {
+    width: 100%;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background: #000;
+}
+
+.close-video {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.player-section.minimized {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    height: auto;
+    padding: 15px 20px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 50;
+    box-shadow: var(--neu-flat);
+    background: var(--bg-color);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.player-section.minimized .track-info-large {
+    flex-direction: row;
+    gap: 15px;
+    width: auto;
+}
+
+.player-section.minimized .album-art {
+    width: 50px;
+    height: 50px;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+.player-section.minimized .track-details h1 {
+    font-size: 1rem;
+    max-width: 120px;
+}
+
+.player-section.minimized .track-details p {
+    font-size: 0.8rem;
+    max-width: 120px;
+}
+
+.player-section.minimized .progress-container,
+.player-section.minimized .secondary-controls,
+.player-section.minimized .mobile-top-bar {
+    display: none !important;
+}
+
+.player-section.minimized .controls {
+    width: auto;
+    gap: 10px;
+    margin-top: 0;
+}
+
+.player-section.minimized .controls button:not(.btn-play) {
+    display: none;
+}
+
+.player-section.minimized .btn-play {
+    width: 45px;
+    height: 45px;
+    font-size: 1rem;
+}
+
 /* Responsive Mobile */
 @media (max-width: 900px) {
     body {
@@ -404,7 +555,7 @@ body {
         border-radius: 0;
         box-shadow: none;
         padding: 20px;
-        padding-bottom: 120px; /* IMPORTANT: mencegah navigasi bawah menutupi kontrol */
+        padding-bottom: 120px;
         min-height: 100vh;
         gap: 20px;
         overflow-y: auto;
@@ -415,11 +566,11 @@ body {
     }
     
     .playlist-section {
-        display: flex; /* Ditampilkan di mobile, dibawah player */
+        display: flex;
     }
     
     .playlist-list {
-        max-height: none; /* Dibiarkan memanjang ke bawah di mobile */
+        max-height: none;
     }
 
     .main-content {
@@ -483,7 +634,6 @@ body {
         margin-top: 10px;
     }
 
-    /* Fix: Menampilkan secondary control & equalizer yang awalnya display:none */
     .secondary-controls {
         display: flex;
         flex-direction: column;
@@ -523,5 +673,14 @@ body {
 
     .mobile-bottom-nav i.active {
         color: var(--accent-color);
+    }
+
+    .player-section.minimized {
+        bottom: 80px;
+        left: 20px;
+        right: 20px;
+        width: calc(100% - 40px);
+        padding: 10px 15px;
+        border-radius: 15px;
     }
 }

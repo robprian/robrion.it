@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- AUDIO PLAYER LOGIC ---
     const audio = document.getElementById('audio-player');
     const playIcon = document.getElementById('play-icon');
     const playerTitle = document.getElementById('player-title');
@@ -15,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSongIndex = 0;
     let isPlaying = false;
 
-    // Fetch playlist dari API Backend secara asynchronous (CI/CD / SPA approach)
     fetch('api/playlist.php')
         .then(response => response.json())
         .then(res => {
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => {
             console.error('Error fetching playlist:', err);
-            playlistContainer.innerHTML = `<p style="text-align: center; color: red; margin-top: 20px;">Gagal memuat playlist. Cek koneksi API.</p>`;
+            playlistContainer.innerHTML = `<p style="text-align: center; color: red; margin-top: 20px;">Gagal memuat playlist.</p>`;
         });
 
     function renderPlaylist() {
@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         playerArtist.innerText = song.artist;
         audio.src = song.url;
 
-        // Update UI Playlist Active State
         document.querySelectorAll('.playlist-item').forEach(item => item.classList.remove('active'));
         const activeItem = document.getElementById(`item-${index}`);
         if (activeItem) activeItem.classList.add('active');
@@ -73,13 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
         playAudio();
     };
 
-    window.togglePlay = function() {
+    window.togglePlay = function(e) {
+        if(e) e.stopPropagation();
         if (playlistData.length === 0) return;
-        if (isPlaying) {
-            pauseAudio();
-        } else {
-            playAudio();
-        }
+        if (isPlaying) pauseAudio();
+        else playAudio();
     };
 
     function playAudio() {
@@ -136,4 +133,93 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sec < 10) sec = `0${sec}`;
         return `${min}:${sec}`;
     }
+
+    // --- MOVIE API LOGIC ---
+    let moviesLoaded = false;
+    const movieContainer = document.getElementById('movie-container');
+
+    window.loadMovies = function() {
+        if(moviesLoaded) return;
+        fetch('api/movies.php')
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === 'success' && res.data.length > 0) {
+                    movieContainer.innerHTML = '';
+                    res.data.forEach((movie) => {
+                        const card = document.createElement('div');
+                        card.className = 'movie-card';
+                        card.onclick = () => openVideo(movie.url, movie.title);
+                        card.innerHTML = `
+                            <div class="thumb"><i class="fa-solid fa-film"></i></div>
+                            <h3>${movie.title}</h3>
+                        `;
+                        movieContainer.appendChild(card);
+                    });
+                    moviesLoaded = true;
+                } else {
+                    movieContainer.innerHTML = `<p style="text-align: center; color: var(--text-light); width: 100%;">Belum ada file video di folder: ${res.path_scanned}</p>`;
+                }
+            })
+            .catch(err => {
+                movieContainer.innerHTML = `<p style="text-align: center; color: red; width: 100%;">Gagal memuat film.</p>`;
+            });
+    }
+
+    // --- SPA NAVIGATION LOGIC ---
+    window.showMusic = function(e) {
+        if(e) e.preventDefault();
+        document.getElementById('view-playlist').style.display = 'flex';
+        document.getElementById('view-movies').style.display = 'none';
+        
+        document.getElementById('main-grid').style.gridTemplateColumns = '1fr 400px';
+        if(window.innerWidth <= 900) {
+            document.getElementById('main-grid').style.gridTemplateColumns = '1fr';
+        }
+
+        document.getElementById('view-player').classList.remove('minimized');
+
+        document.getElementById('head-nav-music').classList.add('active');
+        document.getElementById('head-nav-movie').classList.remove('active');
+        document.getElementById('nav-music').classList.add('active');
+        document.getElementById('nav-movie').classList.remove('active');
+    };
+
+    window.showMovies = function(e) {
+        if(e) e.preventDefault();
+        document.getElementById('view-playlist').style.display = 'none';
+        document.getElementById('view-movies').style.display = 'block';
+        
+        document.getElementById('main-grid').style.gridTemplateColumns = '1fr';
+
+        // Minimize Audio Player
+        document.getElementById('view-player').classList.add('minimized');
+
+        document.getElementById('head-nav-music').classList.remove('active');
+        document.getElementById('head-nav-movie').classList.add('active');
+        document.getElementById('nav-music').classList.remove('active');
+        document.getElementById('nav-movie').classList.add('active');
+
+        loadMovies();
+    };
+
+    // --- VIDEO MODAL LOGIC ---
+    const videoModal = document.getElementById('video-modal');
+    const moviePlayer = document.getElementById('movie-player');
+    const movieTitleDisplay = document.getElementById('movie-title-display');
+
+    window.openVideo = function(url, title) {
+        // Pause audio if playing
+        if(isPlaying) pauseAudio();
+
+        moviePlayer.src = url;
+        movieTitleDisplay.innerText = title;
+        videoModal.style.display = 'flex';
+        moviePlayer.play();
+    };
+
+    window.closeVideo = function() {
+        moviePlayer.pause();
+        moviePlayer.src = '';
+        videoModal.style.display = 'none';
+    };
 });
