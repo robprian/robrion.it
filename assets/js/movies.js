@@ -191,21 +191,25 @@ window.playEpisode = function (ep, epLabel) {
     const subUrl = extractSubtitleUrl(ep);
     const subTrack = subUrl ? `<track kind="subtitles" src="${subUrl}" srclang="id" label="Indonesia" default>` : '';
 
-    // Try decrypt first, fallback to direct play
+    // Decrypt encrypted URL via API → returns {success, streamUrl}
     fetch(`${DRAMA_API}decrypt&url=${encodeURIComponent(videoUrl)}`)
         .then(r => r.json())
         .then(res => {
-            let finalUrl = null;
-            if (typeof res === 'string' && res.startsWith('http')) finalUrl = res;
-            else if (res.url) finalUrl = res.url;
-            else if (res.data && typeof res.data === 'string') finalUrl = res.data;
-            else if (res.data && res.data.url) finalUrl = res.data.url;
-            else if (res.videoUrl) finalUrl = res.videoUrl;
+            // API returns: { success: true, streamUrl: "https://api.sansekai.my.id/api/dramabox/decrypt-stream?url=..." }
+            const finalUrl = res.streamUrl || res.url || res.data || null;
 
-            showPlayer(finalUrl || videoUrl, subTrack, wrap, epLabel);
+            if (finalUrl && finalUrl.startsWith('http')) {
+                showPlayer(finalUrl, subTrack, wrap, epLabel);
+            } else {
+                // No streamUrl returned, show error
+                wrap.innerHTML = `<div style="text-align:center;padding:24px;background:var(--bg);border-radius:18px;box-shadow:var(--shadow-in)">
+                    <i class="fa-solid fa-triangle-exclamation fa-2x" style="color:orange;margin-bottom:12px"></i>
+                    <p style="font-weight:600">Dekripsi gagal untuk ${epLabel}.</p>
+                    <small style="color:var(--text-light)">Response: ${JSON.stringify(res).substring(0,200)}</small></div>`;
+            }
         })
         .catch(() => {
-            // Decrypt failed, try direct URL
+            // Decrypt API down, try direct URL as fallback
             showPlayer(videoUrl, subTrack, wrap, epLabel);
         });
 };
