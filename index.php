@@ -1,22 +1,25 @@
 <?php
-$route = isset($_GET['route']) ? $_GET['route'] : '';
-
-// Bersihkan trailing slashes
-$route = trim($route, '/');
-
 // Front Controller Router
+date_default_timezone_set('Asia/Jakarta');
+
+// Ambil route dari request URI
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$route = trim($uri, '/');
+
+// Dispatch routing
 switch ($route) {
     case '':
     case 'home':
-        require 'views/home.php';
+        require __DIR__ . '/views/home.php';
         break;
+
     case 'music':
     case 'movies':
-        // Teruskan handling active state ke app.js dengan URL window.location
-        require 'views/player.php';
+        require __DIR__ . '/views/player.php';
         break;
+
     default:
         http_response_code(404);
-        echo "<h1 style='text-align:center; color:white; margin-top:20vh;'>404 Not Found</h1>";
+        require __DIR__ . '/views/404.php';
         break;
 }

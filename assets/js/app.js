@@ -1,54 +1,92 @@
-// --- SPA NAVIGATION LOGIC ---
+// ============================================================
+// app.js – SPA Navigation + URL History
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Initialize Music Player by default
-    if(typeof initMusic === 'function') initMusic();
 
-    window.showMusic = function(e) {
-        if(e) e.preventDefault();
-        
-        window.history.pushState({}, '', '/music');
+    // Init music player
+    if (typeof initMusic === 'function') initMusic();
 
-        document.getElementById('view-playlist').style.display = 'flex';
-        document.getElementById('view-movies').style.display = 'none';
-        
-        document.getElementById('main-grid').style.gridTemplateColumns = '1fr 400px';
-        if(window.innerWidth <= 900) {
-            document.getElementById('main-grid').style.gridTemplateColumns = '1fr';
+    /* ---- View switcher ---- */
+    window.showView = function (view, e) {
+        if (e) e.preventDefault();
+
+        const isMobile = window.innerWidth <= 900;
+        const playerEl    = document.getElementById('view-player');
+        const playlistEl  = document.getElementById('view-playlist');
+        const moviesEl    = document.getElementById('view-movies');
+        const mainGrid    = document.getElementById('main-grid');
+
+        if (view === 'music') {
+            // Restore music view
+            if (playerEl)   { playerEl.style.display = 'flex'; playerEl.classList.remove('minimized'); }
+            if (playlistEl) playlistEl.style.display = 'flex';
+            if (moviesEl)   moviesEl.style.display   = 'none';
+            if (mainGrid)   mainGrid.style.gridTemplateColumns = isMobile ? '1fr' : '1fr 380px';
+
+            setNavActive('music');
+            window.history.pushState({}, '', '/music');
+
+        } else if (view === 'movies') {
+            // Minimize music player, show movies
+            if (playerEl)   playerEl.classList.add('minimized');
+            if (playlistEl) playlistEl.style.display = 'none';
+            if (moviesEl)   moviesEl.style.display   = 'flex';
+            if (mainGrid)   mainGrid.style.gridTemplateColumns = '1fr';
+
+            setNavActive('movies');
+            window.history.pushState({}, '', '/movies');
+
+            // Load drama on first visit
+            if (typeof loadMovies === 'function') loadMovies();
         }
-
-        document.getElementById('view-player').classList.remove('minimized');
-
-        document.getElementById('head-nav-music').classList.add('active');
-        document.getElementById('head-nav-movie').classList.remove('active');
-        document.getElementById('nav-music').classList.add('active');
-        document.getElementById('nav-movie').classList.remove('active');
     };
 
-    window.showMovies = function(e) {
-        if(e) e.preventDefault();
-        
-        window.history.pushState({}, '', '/movies');
+    function setNavActive (view) {
+        // Desktop nav
+        document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+        const desktopTarget = document.getElementById(`head-nav-${view === 'music' ? 'music' : 'movie'}`);
+        if (desktopTarget) desktopTarget.classList.add('active');
 
-        document.getElementById('view-playlist').style.display = 'none';
-        document.getElementById('view-movies').style.display = 'block';
-        
-        document.getElementById('main-grid').style.gridTemplateColumns = '1fr';
+        // Mobile nav
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        const mobileTarget = document.getElementById(`nav-${view === 'music' ? 'music' : 'movie'}`);
+        if (mobileTarget) mobileTarget.classList.add('active');
+    }
 
-        // Minimize Audio Player
-        document.getElementById('view-player').classList.add('minimized');
+    /* ---- Auto-activate view based on URL ---- */
+    const path = window.location.pathname.replace(/^\//, '').split('/')[0];
+    if (path === 'movies') {
+        showView('movies');
+    } else {
+        // Default: music view
+        showView('music');
+    }
 
-        document.getElementById('head-nav-music').classList.remove('active');
-        document.getElementById('head-nav-movie').classList.add('active');
-        document.getElementById('nav-music').classList.remove('active');
-        document.getElementById('nav-movie').classList.add('active');
+    /* ---- Handle browser back/forward ---- */
+    window.addEventListener('popstate', () => {
+        const p = window.location.pathname.replace(/^\//, '').split('/')[0];
+        showView(p === 'movies' ? 'movies' : 'music');
+    });
 
-        if(typeof loadMovies === 'function') loadMovies();
-    };
+    /* ---- Resize handler ---- */
+    window.addEventListener('resize', () => {
+        const view = window.location.pathname.includes('movies') ? 'movies' : 'music';
+        const mainGrid = document.getElementById('main-grid');
+        if (mainGrid && view === 'music') {
+            mainGrid.style.gridTemplateColumns = window.innerWidth <= 900 ? '1fr' : '1fr 380px';
+        }
+    });
 
-    // Auto load tab based on URL
-    const currentPath = window.location.pathname;
-    if(currentPath.includes('movies')) {
-        showMovies();
+    /* ---- Minimized player click -> restore music ---- */
+    const playerEl = document.getElementById('view-player');
+    if (playerEl) {
+        playerEl.addEventListener('click', function (e) {
+            if (this.classList.contains('minimized')) {
+                // Only restore if click is NOT on play button
+                if (!e.target.closest('#btn-play')) {
+                    showView('music');
+                }
+            }
+        });
     }
 });

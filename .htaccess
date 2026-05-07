@@ -1,4 +1,10 @@
+Options -Indexes
 RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
+
+# Izinkan akses langsung ke file dan folder yang ada (assets, api, dll)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Teruskan semua request lain ke index.php (Front Controller)
+RewriteRule ^ index.php [L]
