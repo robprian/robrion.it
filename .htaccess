@@ -1,7 +1,4 @@
 RewriteEngine On
-# Jika file bukan direktori
+RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-# Jika file dengan ekstensi .php ada
-RewriteCond %{REQUEST_FILENAME}.php -f
-# Hilangkan ekstensi .php dari URL
-RewriteRule ^(.*)$ $1.php [NC,L]
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]

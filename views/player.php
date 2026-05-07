@@ -34,7 +34,7 @@
             <!-- PLAYER SECTION (Music) -->
             <section class="player-section" id="view-player">
                 <div class="mobile-top-bar">
-                    <i class="fa-solid fa-chevron-left" onclick="window.location.href='index'"></i>
+                    <i class="fa-solid fa-chevron-left" onclick="window.location.href='/'"></i>
                     <span>Now Playing</span>
                     <i class="fa-solid fa-bars"></i>
                 </div>
@@ -111,7 +111,7 @@
 
         <!-- MOBILE BOTTOM NAV -->
         <nav class="mobile-bottom-nav">
-            <i class="fa-solid fa-house" onclick="window.location.href='index'"></i>
+            <i class="fa-solid fa-house" onclick="window.location.href='/'"></i>
             <i class="fa-solid fa-music active" id="nav-music" onclick="showMusic(event)"></i>
             <i class="fa-solid fa-film" id="nav-movie" onclick="showMovies(event)"></i>
             <i class="fa-solid fa-layer-group"></i>
@@ -130,6 +130,8 @@
     <!-- AUDIO ELEMENT -->
     <audio id="audio-player"></audio>
 
-    <script src="assets/js/player.js"></script>
+    <script src="assets/js/music.js"></script>
+    <script src="assets/js/movies.js"></script>
+    <script src="assets/js/app.js"></script>
 </body>
 </html>
