@@ -3,11 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drama Box – Movies | robrion.my.id</title>
-    <meta name="description" content="Nonton drama online dengan streaming DramaBox API – desain Cinema Flow neumorphism.">
+    <title>Streaming Hub – Movies & Anime | robrion.my.id</title>
+    <meta name="description" content="Nonton drama & anime online dari 9 provider – DramaBox, PineDrama, ReelShort, ShortMax, GoodShort, NetShort, FreeReels, DramaNova & Anime.">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/player.css">
+    <style>
+    /* ── Provider Selector Bar ── */
+    .provider-scroll{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .provider-scroll::-webkit-scrollbar{display:none}
+    .provider-btn{
+        display:flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:16px;
+        font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;
+        background:var(--bg,#e8edf2);box-shadow:var(--shadow-btn,4px 4px 12px #c8ccd0,-4px -4px 12px #fff);
+        color:var(--text-light,#67748e);transition:all .25s ease;flex-shrink:0;
+    }
+    .provider-btn:hover{transform:translateY(-2px);color:var(--text,#2d3748)}
+    .provider-btn.active{
+        box-shadow:var(--shadow-in,inset 4px 4px 12px #c8ccd0,inset -4px -4px 12px #fff);
+        color:#fff;
+    }
+    .provider-btn .prov-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .provider-count{font-size:.68rem;opacity:.7;margin-left:2px}
+
+    /* ── Search bar upgrade ── */
+    .search-section{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+    .search-section .search-wrap{flex:1}
+    .search-btn{
+        padding:10px 22px;border:none;border-radius:14px;font-family:inherit;font-weight:600;
+        font-size:.85rem;cursor:pointer;color:#fff;background:var(--accent,#667eea);
+        box-shadow:0 4px 14px rgba(102,126,234,.35);transition:all .2s;white-space:nowrap;
+    }
+    .search-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(102,126,234,.45)}
+
+    /* ── Active provider title ── */
+    .active-provider-name{
+        display:inline-flex;align-items:center;gap:8px;padding:3px 14px;border-radius:10px;
+        font-size:.78rem;font-weight:600;color:#fff;vertical-align:middle;
+    }
+    </style>
 </head>
 <body>
 <div class="app-container">
@@ -23,10 +57,6 @@
             <a href="/movies" class="active"><i class="fa-solid fa-clapperboard"></i> Movies</a>
         </nav>
         <div class="header-right">
-            <div class="search-wrap">
-                <i class="fa-solid fa-search search-icon"></i>
-                <input type="text" class="search-bar" id="movie-search" placeholder="Search drama...">
-            </div>
             <a href="https://github.com/robprian" target="_blank" class="profile-btn" title="GitHub">
                 <i class="fa-brands fa-github"></i>
             </a>
@@ -36,29 +66,74 @@
     <!-- MAIN -->
     <main class="main-content movies-layout">
 
-        <!-- MOVIE SECTION -->
+        <!-- PROVIDER SELECTOR BAR -->
+        <section class="provider-section" style="margin-bottom:6px">
+            <div class="provider-scroll" id="provider-bar">
+                <button class="provider-btn active" data-provider="dramabox" onclick="switchProvider('dramabox')">
+                    <span class="prov-dot" style="background:#FF6B6B"></span>
+                    <i class="fa-solid fa-tv"></i> DramaBox
+                </button>
+                <button class="provider-btn" data-provider="pinedrama" onclick="switchProvider('pinedrama')">
+                    <span class="prov-dot" style="background:#4ECDC4"></span>
+                    <i class="fa-solid fa-leaf"></i> PineDrama
+                </button>
+                <button class="provider-btn" data-provider="reelshort" onclick="switchProvider('reelshort')">
+                    <span class="prov-dot" style="background:#FF8C42"></span>
+                    <i class="fa-solid fa-film"></i> ReelShort
+                </button>
+                <button class="provider-btn" data-provider="shortmax" onclick="switchProvider('shortmax')">
+                    <span class="prov-dot" style="background:#FFD93D"></span>
+                    <i class="fa-solid fa-bolt"></i> ShortMax
+                </button>
+                <button class="provider-btn" data-provider="goodshort" onclick="switchProvider('goodshort')">
+                    <span class="prov-dot" style="background:#6BCB77"></span>
+                    <i class="fa-solid fa-thumbs-up"></i> GoodShort
+                </button>
+                <button class="provider-btn" data-provider="netshort" onclick="switchProvider('netshort')">
+                    <span class="prov-dot" style="background:#4D96FF"></span>
+                    <i class="fa-solid fa-globe"></i> NetShort
+                </button>
+                <button class="provider-btn" data-provider="freereels" onclick="switchProvider('freereels')">
+                    <span class="prov-dot" style="background:#9B59B6"></span>
+                    <i class="fa-solid fa-video"></i> FreeReels
+                </button>
+                <button class="provider-btn" data-provider="dramanova" onclick="switchProvider('dramanova')">
+                    <span class="prov-dot" style="background:#E74C3C"></span>
+                    <i class="fa-solid fa-star"></i> DramaNova
+                </button>
+                <button class="provider-btn" data-provider="anime" onclick="switchProvider('anime')">
+                    <span class="prov-dot" style="background:#E91E63"></span>
+                    <i class="fa-solid fa-dragon"></i> Anime
+                </button>
+            </div>
+        </section>
+
+        <!-- SEARCH + CATEGORY -->
         <section class="movie-section" id="view-movies">
             <div class="movie-section-header">
                 <div>
-                    <h2 class="section-title">
-                        <i class="fa-solid fa-fire" style="color:var(--accent)"></i> Drama Box
+                    <h2 class="section-title" id="section-provider-title">
+                        <i class="fa-solid fa-fire" style="color:var(--accent)"></i>
+                        <span class="active-provider-name" id="active-prov-badge" style="background:#FF6B6B">DramaBox</span>
+                        Streaming
                     </h2>
-                    <p class="section-subtitle">Streaming drama via DramaBox API &mdash; klik drama untuk nonton</p>
+                    <p class="section-subtitle" id="section-subtitle">Klik drama untuk nonton • Pilih provider di atas untuk ganti sumber</p>
                 </div>
-                <div class="movie-tabs">
-                    <button class="movie-tab active" onclick="loadDramaCategory('foryou',this)">
-                        <i class="fa-solid fa-star"></i> For You
-                    </button>
-                    <button class="movie-tab" onclick="loadDramaCategory('trending',this)">
-                        <i class="fa-solid fa-fire-flame-curved"></i> Trending
-                    </button>
-                    <button class="movie-tab" onclick="loadDramaCategory('latest',this)">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Terbaru
-                    </button>
-                    <button class="movie-tab" onclick="loadDramaCategory('dubindo',this)">
-                        <i class="fa-solid fa-language"></i> Dub Indo
-                    </button>
+            </div>
+
+            <!-- Search -->
+            <div class="search-section">
+                <div class="search-wrap">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" class="search-bar" id="movie-search" placeholder="Cari drama / anime..."
+                           onkeydown="if(event.key==='Enter')searchDrama()">
                 </div>
+                <button class="search-btn" onclick="searchDrama()"><i class="fa-solid fa-search"></i> Cari</button>
+            </div>
+
+            <!-- Dynamic category tabs -->
+            <div class="movie-tabs" id="category-tabs" style="margin-bottom:18px">
+                <!-- populated by switchProvider() -->
             </div>
 
             <div class="movie-grid" id="movie-container">
@@ -133,17 +208,22 @@
 <script src="/assets/js/movies.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Auto-load drama
-    loadDramaCategory('foryou', document.querySelector('.movie-tab'));
+    // Boot multi-provider system
+    switchProvider('dramabox');
 
-    // Search
-    document.getElementById('movie-search')?.addEventListener('input', function() {
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('.movie-card').forEach(c => {
-            const t = c.querySelector('h3')?.innerText.toLowerCase() || '';
-            c.style.display = t.includes(q) ? '' : 'none';
-        });
-    });
+    // Also update provider badge color when switching
+    const origSwitch = window.switchProvider;
+    window.switchProvider = function(key) {
+        origSwitch(key);
+        const prov = PROVIDERS[key];
+        const badge = document.getElementById('active-prov-badge');
+        if (badge && prov) {
+            badge.style.background = prov.color;
+            badge.textContent = prov.name;
+        }
+    };
+    // Re-trigger to set badge
+    window.switchProvider('dramabox');
 
     // Mini player from localStorage
     initMiniPlayer();
