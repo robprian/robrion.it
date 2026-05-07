@@ -18,7 +18,7 @@ if (is_dir($music_dir)) {
             $playlist[] = [
                 'title' => $clean_title,
                 'artist' => $config['default_artists'][$artist_index % count($config['default_artists'])],
-                'url' => 'api/stream.php?file=' . urlencode($file)
+                'url' => '/api/stream.php?file=' . urlencode($file)
             ];
             $artist_index++;
         }
