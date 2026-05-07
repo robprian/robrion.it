@@ -140,29 +140,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.loadMovies = function() {
         if(moviesLoaded) return;
-        fetch('api/movies.php')
+        movieContainer.innerHTML = '<p style="text-align: center; color: var(--text-light); width: 100%;"><i class="fa-solid fa-circle-notch fa-spin"></i> Memuat data dari API...</p>';
+        
+        fetch('https://api.sansekai.my.id/api/dramabox/foryou')
             .then(res => res.json())
-            .then(res => {
-                if(res.status === 'success' && res.data.length > 0) {
+            .then(data => {
+                if(data && data.length > 0) {
                     movieContainer.innerHTML = '';
-                    res.data.forEach((movie) => {
+                    data.forEach((movie) => {
                         const card = document.createElement('div');
                         card.className = 'movie-card';
-                        card.onclick = () => openVideo(movie.url, movie.title);
+                        card.onclick = () => showMovieDetail(movie);
+                        
                         card.innerHTML = `
-                            <div class="thumb"><i class="fa-solid fa-film"></i></div>
-                            <h3>${movie.title}</h3>
+                            <div class="thumb" style="background: url('${movie.coverWap}') center/cover; position: relative;">
+                                <div style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; color: white;">
+                                    ${movie.chapterCount} Eps
+                                </div>
+                            </div>
+                            <h3 title="${movie.bookName}">${movie.bookName}</h3>
+                            <div style="font-size: 0.7rem; color: var(--text-light); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${movie.tags ? movie.tags.slice(0, 2).join(' • ') : ''}
+                            </div>
                         `;
                         movieContainer.appendChild(card);
                     });
                     moviesLoaded = true;
                 } else {
-                    movieContainer.innerHTML = `<p style="text-align: center; color: var(--text-light); width: 100%;">Belum ada file video di folder: ${res.path_scanned}</p>`;
+                    movieContainer.innerHTML = `<p style="text-align: center; color: var(--text-light); width: 100%;">Tidak ada data film.</p>`;
                 }
             })
             .catch(err => {
-                movieContainer.innerHTML = `<p style="text-align: center; color: red; width: 100%;">Gagal memuat film.</p>`;
+                console.error("API Error:", err);
+                movieContainer.innerHTML = `<p style="text-align: center; color: red; width: 100%;">Gagal memuat film dari server API.</p>`;
             });
+    }
+
+    window.showMovieDetail = function(movie) {
+        // Karena endpoint video langsung belum tersedia (butuh fetch allepisode & decrypt url), 
+        // kita tampilkan notifikasi sementara atau integrasikan fetch selanjutnya.
+        alert("Judul: " + movie.bookName + "\n\nSistem sedang dikembangkan untuk memutar video melalui API:\n- /dramabox/allepisode\n- /dramabox/decrypt\n\nBookID: " + movie.bookId);
     }
 
     // --- SPA NAVIGATION LOGIC ---
